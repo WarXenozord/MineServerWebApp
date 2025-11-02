@@ -20,7 +20,7 @@ h2 {
 }
 label {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   margin-top: 12px;
   color: #bfe8bf;
 }
@@ -40,6 +40,7 @@ button {
   padding: 10px;
   border: 3px solid #2f5a2f;
   background: #1e3d1e;
+  font-weight: bold;
   color: #fff;
   cursor: pointer;
 }

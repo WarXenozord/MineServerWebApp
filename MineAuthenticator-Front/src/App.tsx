@@ -38,19 +38,19 @@ function App() {
           <input
             value={user}
             onChange={(e) => setUser(e.target.value)}
-            placeholder="Username"
+            placeholder=""
           />
           <label>Senha</label>
           <input
             type="password"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
-            placeholder="password"
+            placeholder=""
           />
           <button disabled={loading}>{loading ? "..." : "LOGIN"}</button>
         </form>
         <div className="status">{status}</div>
-        <div className="pixel">COPY IP: xx.xx.xx.xx:25565</div>
+        <div className="pixel">2025 - Juan Libonatti</div>
       </div>
     </>
   );
