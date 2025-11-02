@@ -4,6 +4,6 @@
   "scripts": {
     "install-all": "npm install --prefix MineAuthenticator-Back && npm install --prefix MineAuthenticator-Front",
     "build": "npm run build --prefix MineAuthenticator-Front",
-    "start": "cross-env NODE_ENV=production npm run start --prefix MineAuthenticator-Back"
+    "start": "npm run start --prefix MineAuthenticator-Back"
   }
 }
