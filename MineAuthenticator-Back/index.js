@@ -28,26 +28,23 @@ function loadUsers() {
 }
 
 
-app.post('/api/login', async (req, res) => {
-const { username, password } = req.body || {};
-if (!username || !password) return res.status(400).json({ ok: false, error: 'missing' });
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password)
+    return res.status(400).json({ ok: false, error: "missing" });
 
+  const hashes = loadUsers();
+  const userHash = hashes[username];
+  if (!userHash) return res.status(401).json({ ok: false, error: "invalid" });
 
-const users = loadUsers();
-const user = users[username];
-if (!user) return res.status(401).json({ ok: false, error: 'invalid' });
-
-
-try {
-const match = await bcrypt.compare(password, user.hash);
-if (!match) return res.status(401).json({ ok: false, error: 'invalid' });
-
-
-// Success — return a simple session token (in-memory) or boolean. For now return success.
-return res.json({ ok: true, message: 'logged' });
-} catch (e) {
-return res.status(500).json({ ok: false, error: 'server' });
-}
+  try {
+    const match = await bcrypt.compare(password, userHash);
+    if (!match) return res.status(401).json({ ok: false, error: "invalid" });
+    // Success — return a simple session token (in-memory) or boolean. For now return success.
+    return res.json({ ok: true, message: "logged" });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: "server" });
+  }
 });
 
 
