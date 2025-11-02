@@ -1,0 +1,15 @@
+{
+  "name": "mine-server-web-app",
+  "private": true,
+  "scripts": {
+    "install": "npm install --prefix MineAuthenticator-Back && npm install --prefix MineAuthenticator-Front",
+    "build": "npm run build --prefix MineAuthenticator-Front",
+    "start": "npm run start --prefix MineAuthenticator-Back",
+    "dev": "concurrently \"npm run dev-backend\" \"npm run dev-frontend\"",
+    "dev-backend": "npm run dev --prefix MineAuthenticator-Back",
+    "dev-frontend": "npm run dev --prefix MineAuthenticator-Front"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
