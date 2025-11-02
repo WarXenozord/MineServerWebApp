@@ -122,11 +122,13 @@ function App() {
             <h3>🌐 IP do Servidor:</h3>
             <p className="ip">{serverInfo.ip}</p>
             <h3>👥 Jogadores Online:</h3>
-            <ul>
-              {serverInfo.players?.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
+              {serverInfo.players && serverInfo.players.length != 0 ? (
+                <ul> 
+                  {serverInfo.players.map((p) => (
+                            <li key={p}>{p}</li>
+                          )) }
+                </ul>
+              ) : (<p className="ip">Sem Jogadores - Seja o Primeiro 🤩</p>)}
             <p className="tip">
               Copie o IP acima, cole no Minecraft e boa jogatina! 🎮
             </p>

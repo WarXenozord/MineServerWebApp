@@ -100,7 +100,7 @@ app.get("/api/status", (req, res) => {
     return res.json({
       ok: true,
       ip: "192.168.0.42:22564",
-      players: ["Ana", "Breno", "Carlos"],
+      players: [],
     });
   }
 
