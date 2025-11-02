@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/pw/.env' : './.env' });
+
 import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
@@ -13,11 +16,12 @@ import {
   recordSuccessfulLogin,
 } from "./Util/blocker.js";
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 4000;
-const USERS_FILE = path.join(__dirname, "users.json");
+const USERS_FILE = process.env.USERS_FILE || "users.json";
 
 const app = express();
 app.use(bodyParser.json());

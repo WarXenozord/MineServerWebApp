@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/pw/.env' : './.env' });
+
 import fs from "fs";
 import path from "path";
 
@@ -32,13 +35,13 @@ const failedLoginByIp = new Map();
 const honeypotHits = new Map();
 
 // ---- Config ----
-const USER_ATTEMPT_LIMIT = 10;
-const USER_ATTEMPT_WINDOW = 60 * 60 * 1000;
+const USER_ATTEMPT_LIMIT = process.env.USER_ATTEMPT_LIMIT || 10;
+const USER_ATTEMPT_WINDOW = process.env.USER_ATTEMPT_WINDOW || 60 * 60 * 1000;
 
-const IP_ATTEMPT_LIMIT = 5;
-const IP_ATTEMPT_WINDOW = 60 * 60 * 1000;
+const IP_ATTEMPT_LIMIT = process.env.IP_ATTEMPT_LIMIT || 5;
+const IP_ATTEMPT_WINDOW = process.env.IP_ATTEMPT_WINDOW || 60 * 60 * 1000;
 
-const HONEYPOT_THRESHOLD = 3;
+const HONEYPOT_THRESHOLD = process.env.HONEYPOT_THRESHOLD || 3;
 
 // ---- Helpers ----
 export function clientIpFromReq(req) {
