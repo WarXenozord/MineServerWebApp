@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from 'axios';
 import "./App.css";
 
 function App() {
@@ -7,8 +8,7 @@ function App() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function submit(e) {
-    e.preventDefault();
+  async function submit() {
     setLoading(true);
     setStatus("");
     try {
