@@ -1,22 +1,28 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import bcrypt from 'bcrypt';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import bodyParser from "body-parser";
+import bcrypt from "bcrypt";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import {
+  blockMiddleware,
+  clientIpFromReq,
+  checkHoneypot,
+  checkRateLimit,
+  recordFailedAttempt,
+  recordSuccessfulLogin,
+} from "./Util/blocker.js";
 
-// Convert ES module URL to a file path
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Set up ports and DB
 const PORT = process.env.PORT || 4000;
-const USERS_FILE = path.join(__dirname, 'users.json');
+const USERS_FILE = path.join(__dirname, "users.json");
 
 const app = express();
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(blockMiddleware);
+app.use(express.static(path.join(__dirname, "public")));
 
 function loadUsers() {
   if (!fs.existsSync(USERS_FILE)) return {};
@@ -27,32 +33,93 @@ function loadUsers() {
   }
 }
 
+// ---- STATE SIMULATION ----
+let serverBooting = false;
+let serverOnline = false;
+let bootStartTime = 0;
 
+// Simulate a fake Minecraft server that takes ~15s to start
+function simulateServerStart() {
+  serverBooting = true;
+  serverOnline = false;
+  bootStartTime = Date.now();
+
+  setTimeout(() => {
+    serverBooting = false;
+    serverOnline = true;
+  }, 15000);
+}
+
+// ---- LOGIN ----
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body || {};
-  if (!username || !password)
-    return res.status(400).json({ ok: false, error: "missing" });
+  const ip = clientIpFromReq(req);
 
-  const hashes = loadUsers();
-  const userHash = hashes[username];
-  if (!userHash) return res.status(401).json({ ok: false, error: "invalid" });
+  // --- Honeypot check ---
+  const hp = checkHoneypot(req, ip);
+  if (hp.tripped) {
+    // respond like normal failure
+    return res.status(401).json({ ok: false, error: "invalid" });
+  }
+
+  // --- Brute-force rate limiter ---
+  const rate = checkRateLimit(username, ip);
+  if (!rate.ok) {
+    return res.status(429).json({ ok: false, error: rate.reason });
+  }
+
+  // --- User verification ---
+  const users = loadUsers();
+  const userHash = users[username];
+  if (!userHash) {
+    recordFailedAttempt(username, ip);
+    return res.status(401).json({ ok: false, error: "invalid" });
+  }
 
   try {
     const match = await bcrypt.compare(password, userHash);
-    if (!match) return res.status(401).json({ ok: false, error: "invalid" });
-    // Success — return a simple session token (in-memory) or boolean. For now return success.
+    if (!match) {
+      recordFailedAttempt(username, ip);
+      return res.status(401).json({ ok: false, error: "invalid" });
+    }
+
+    // Success
+    recordSuccessfulLogin(username, ip);
+    if (!global.serverBooting && !global.serverOnline) simulateServerStart();
+
     return res.json({ ok: true, message: "logged" });
-  } catch (e) {
+  } catch (err) {
+    console.error("login error", err);
     return res.status(500).json({ ok: false, error: "server" });
   }
 });
 
+// ---- STATUS ENDPOINT ----
+app.get("/api/status", (req, res) => {
+  if (serverOnline) {
+    return res.json({
+      ok: true,
+      ip: "192.168.0.42:22564",
+      players: ["Ana", "Breno", "Carlos"],
+    });
+  }
 
-// fallback for SPA routes
-app.use(express.static(path.join(__dirname, '..', 'MineAuthenticator-Front', 'dist')));
-app.get(/.*/, (req, res) => {
-res.sendFile(path.join(__dirname,'..', 'MineAuthenticator-Front', 'dist', 'index.html'));
+  if (serverBooting) {
+    const elapsed = ((Date.now() - bootStartTime) / 1000).toFixed(1);
+    return res.json({ ok: false, message: `booting (${elapsed}s elapsed)` });
+  }
+
+  return res.json({ ok: false, message: "server offline" });
 });
 
+// ---- SPA fallback ----
+app.use(
+  express.static(path.join(__dirname, "..", "MineAuthenticator-Front", "dist"))
+);
+app.get(/.*/, (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "..", "MineAuthenticator-Front", "dist", "index.html")
+  );
+});
 
-app.listen(PORT, () => console.log(`mine-server-app listening on ${PORT}`))
+app.listen(PORT, () => console.log(`mine-server-app listening on ${PORT}`));

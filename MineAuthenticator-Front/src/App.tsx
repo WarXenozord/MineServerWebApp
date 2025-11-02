@@ -22,10 +22,14 @@ function App() {
     setStatus("");
     setServerInfo(null);
 
+    const form = e.currentTarget;
+    const hp = (form as HTMLFormElement).website?.value || ""; // honeypot
+    // existing logic...
     try {
       const res = await axios.post("/api/login", {
         username: user,
         password: pass,
+        website: hp,
       });
 
       if (res.data && res.data.ok) {
@@ -38,6 +42,9 @@ function App() {
           setStatus("❌ Falha no Login: Login Inválido");
         } else if (err.response.status === 400) {
           setStatus("⚠️ Dados faltando — preencha tudo.");
+        } else if (err.response.status === 429) {{
+          setStatus("🚨 Limite Atingido: Tente Novamente em 1 Hora");
+        }
         } else {
           setStatus("❌ Falha no Login: Erro no Servidor");
         }
@@ -82,6 +89,10 @@ function App() {
 
         {!serverInfo && (
           <form onSubmit={submit}>
+            <div style={{display: "none"}} aria-hidden="true">
+              <label htmlFor="website">Website</label>
+              <input id="website" name="website" autoComplete="off" tabIndex={-1} />
+            </div>
             <label>Usuário</label>
             <input
               value={user}
