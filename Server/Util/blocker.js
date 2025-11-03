@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/pw/.env' : './.env' });
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/ms/.env' : './.env' });
 
 import fs from "fs";
 import path from "path";

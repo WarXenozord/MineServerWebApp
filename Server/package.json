@@ -11,6 +11,7 @@
     "nodemon": "^3.1.10"
   },
   "dependencies": {
+    "@aws-sdk/client-lambda": "^3.922.0",
     "bcrypt": "^6.0.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.2.3",

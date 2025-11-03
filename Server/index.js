@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/pw/.env' : './.env' });
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/ms/.env' : './.env' });
 
 import express from "express";
 import bodyParser from "body-parser";

@@ -2,8 +2,8 @@
   "name": "mine-server-web-app",
   "private": true,
   "scripts": {
-    "install-all": "npm install --prefix MineAuthenticator-Back && npm install --prefix MineAuthenticator-Front",
-    "build": "npm run build --prefix MineAuthenticator-Front",
-    "start": "npm run start --prefix MineAuthenticator-Back"
+    "install-all": "npm install --prefix Server && npm install --prefix Client",
+    "build": "npm run build --prefix Client",
+    "start": "npm run start --prefix Server"
   }
 }
