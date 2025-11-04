@@ -162,7 +162,7 @@ app.get("/api/status", requireToken, async (req, res) => {
 app.use(express.static(path.join(__dirname, "..", "Client", "dist")));
 app.get(/.*/, (req, res) => {
   res.sendFile(
-    path.join(__dirname, "..", "MineAuthenticator-Front", "dist", "index.html")
+    path.join(__dirname, "..", "Client", "dist", "index.html")
   );
 });
 

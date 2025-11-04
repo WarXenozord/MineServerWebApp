@@ -18,7 +18,7 @@ export async function invokeStartServerLambda() {
     console.log("⚙️  Mock Lambda invoked locally");
     // Simulate network + boot delay
     await new Promise(r => setTimeout(r, 1500));
-    return { ok: true, ip: "127.0.0.1:25565", message: "Local fake Lambda success" };
+    return { ok: true, ip: "localhost", message: "Local fake Lambda success" };
   }
 
   const command = new InvokeCommand({

@@ -2,12 +2,12 @@ import dotenv from "dotenv";
 dotenv.config({ path: process.env.NODE_ENV === "production" ? "/etc/ms/.env" : "./.env" });
 
 import fs from "fs";
-import path from "path";
 import fetch from "node-fetch";
 import { invokeStartServerLambda } from "./lambdaCaller.js";
 
 const STATE_FILE = "./Logs/lastServer.json";
 const MAX_LAMBDA_CALLS_PER_DAY = process.env.MAX_LAMBDA_CALLS_PER_DAY || 20;
+const PORT = process.env.API_PORT
 
 let lastKnownIp = null;
 let lambdaCallsToday = 0;
@@ -37,7 +37,7 @@ function saveState() {
 // --- Try to reach the Minecraft server ---
 async function checkServer(ip) {
   try {
-    const res = await fetch(`http://${ip}/api/status`, { timeout: 4000 });
+    const res = await fetch(`http://${ip}:${PORT}/status`, { timeout: 4000 });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -62,7 +62,7 @@ export async function getServerStatus() {
   if (lastKnownIp) {
     const status = await checkServer(lastKnownIp);
     if (status && status.ok) {
-      return { status: "online", ip: lastKnownIp, players: status.players };
+      return { status: "online", ip: lastKnownIp+":"+status.port, players: status.players };
     }
   }
 
@@ -87,7 +87,7 @@ export async function getServerStatus() {
       const status = await checkServer(lastKnownIp);
       if (status && status.ok) {
         serverStarting = false;
-        return { status: "online", ip: lastKnownIp, players: status.players };
+        return { status: "online", ip: lastKnownIp+":"+status.port, players: status.players };
       }
     }
 
