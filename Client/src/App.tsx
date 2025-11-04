@@ -3,9 +3,10 @@ import axios from "axios";
 import "./App.css";
 
 interface ServerStatus {
-  ok: boolean;
+  status: string;
   ip?: string;
   players?: string[];
+  message?:string;
 }
 
 function App() {
@@ -70,13 +71,14 @@ function App() {
           },
         });
 
-        if (res.data.ok) {
+        if (res.data.status == "online") {
           setServerInfo(res.data);
           setChecking(false);
           setStatus("✅ Servidor Online!");
-        } else {
+        } else if (res.data.status == "busy") {
+          setStatus("❌ Erro : " + res.data.message || "Sem Informações");
+        } else
           setStatus("⏳ Servidor iniciando...");
-        }
       } catch (err: any) {
         // handle 401 -> token expired
         if (err.response && err.response.status === 401) {
