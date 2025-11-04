@@ -1,0 +1,101 @@
+import dotenv from "dotenv";
+dotenv.config({ path: process.env.NODE_ENV === "production" ? "/etc/ms/.env" : "./.env" });
+
+import fs from "fs";
+import path from "path";
+import fetch from "node-fetch";
+import { invokeStartServerLambda } from "./lambdaCaller.js";
+
+const STATE_FILE = "./Logs/lastServer.json";
+const MAX_LAMBDA_CALLS_PER_DAY = process.env.MAX_LAMBDA_CALLS_PER_DAY || 20;
+
+let lastKnownIp = null;
+let lambdaCallsToday = 0;
+let lastCallDay = new Date().getDate();
+let serverStarting = false;
+
+// --- Load persisted IP if available ---
+try {
+  if (fs.existsSync(STATE_FILE)) {
+    const data = JSON.parse(fs.readFileSync(STATE_FILE));
+    lastKnownIp = data.ip || null;
+    lambdaCallsToday = data.lambdaCallsToday || 0;
+    lastCallDay = data.lastCallDay || new Date().getDate();
+  }
+} catch {
+  console.warn("[ServerManager] No lastServer.json yet, starting fresh");
+}
+
+// --- Persist state ---
+function saveState() {
+  fs.writeFileSync(
+    STATE_FILE,
+    JSON.stringify({ ip: lastKnownIp, lambdaCallsToday, lastCallDay }, null, 2)
+  );
+}
+
+// --- Try to reach the Minecraft server ---
+async function checkServer(ip) {
+  try {
+    const res = await fetch(`http://${ip}/api/status`, { timeout: 4000 });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getServerStatus() {
+  // Reset daily counter
+  const today = new Date().getDate();
+  if (today !== lastCallDay) {
+    lambdaCallsToday = 0;
+    lastCallDay = today;
+  }
+
+  if (serverStarting) {
+    console.log("[ServerManager] Server is starting...");
+    return { status: "booting", ip: lastKnownIp };
+  }
+
+  // Try existing IP
+  if (lastKnownIp) {
+    const status = await checkServer(lastKnownIp);
+    if (status && status.ok) {
+      return { status: "online", ip: lastKnownIp, players: status.players };
+    }
+  }
+
+  // Otherwise, trigger Lambda if below limit
+  if (lambdaCallsToday >= MAX_LAMBDA_CALLS_PER_DAY) {
+    console.warn("[ServerManager] Lambda limit reached for today");
+    return { status: "error", message: "Lambda call limit reached", ip: lastKnownIp };
+  }
+
+  try {
+    serverStarting = true;
+    const result = await invokeStartServerLambda();
+
+    if (!result || !result.ip) throw new Error("Lambda returned no IP");
+    lastKnownIp = result.ip;
+    lambdaCallsToday++;
+    saveState();
+
+    // Wait/poll until online
+    for (let i = 0; i < 18; i++) {
+      await new Promise(r => setTimeout(r, 10000));
+      const status = await checkServer(lastKnownIp);
+      if (status && status.ok) {
+        serverStarting = false;
+        return { status: "online", ip: lastKnownIp, players: status.players };
+      }
+    }
+
+    serverStarting = false;
+    return { status: "booting", ip: lastKnownIp };
+  } catch (err) {
+    console.error("[ServerManager] Lambda failed:", err.message);
+    serverStarting = false;
+    return { status: "error", message: err.message, ip: lastKnownIp };
+  }
+}

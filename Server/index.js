@@ -15,7 +15,7 @@ import {
   recordFailedAttempt,
   recordSuccessfulLogin,
 } from "./Util/blocker.js";
-
+import { getServerStatus } from "./Util/serverManager.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,26 +99,14 @@ app.post("/api/login", async (req, res) => {
 });
 
 // ---- STATUS ENDPOINT ----
-app.get("/api/status", (req, res) => {
-  if (serverOnline) {
-    return res.json({
-      ok: true,
-      ip: "192.168.0.42:22564",
-      players: [],
-    });
-  }
-
-  if (serverBooting) {
-    const elapsed = ((Date.now() - bootStartTime) / 1000).toFixed(1);
-    return res.json({ ok: false, message: `booting (${elapsed}s elapsed)` });
-  }
-
-  return res.json({ ok: false, message: "server offline" });
+app.get("/api/status", async (req, res) => {
+  const result = await getServerStatus();
+  res.json(result);
 });
 
 // ---- SPA fallback ----
 app.use(
-  express.static(path.join(__dirname, "..", "MineAuthenticator-Front", "dist"))
+  express.static(path.join(__dirname, "..", "Client", "dist"))
 );
 app.get(/.*/, (req, res) => {
   res.sendFile(
