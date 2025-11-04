@@ -15,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [serverInfo, setServerInfo] = useState<ServerStatus | null>(null);
   const [checking, setChecking] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -24,7 +25,7 @@ function App() {
 
     const form = e.currentTarget;
     const hp = (form as HTMLFormElement).website?.value || ""; // honeypot
-    // existing logic...
+
     try {
       const res = await axios.post("/api/login", {
         username: user,
@@ -34,7 +35,8 @@ function App() {
 
       if (res.data && res.data.ok) {
         setStatus("✅ Bem vindo — Iniciando Servidor...");
-        setChecking(true); // start polling
+        setChecking(true);
+        setToken(res.data.token); // 🔐 store temporary token
       }
     } catch (err: any) {
       if (err.response) {
@@ -42,9 +44,8 @@ function App() {
           setStatus("❌ Falha no Login: Login Inválido");
         } else if (err.response.status === 400) {
           setStatus("⚠️ Dados faltando — preencha tudo.");
-        } else if (err.response.status === 429) {{
+        } else if (err.response.status === 429) {
           setStatus("🚨 Limite Atingido: Tente Novamente em 1 Hora");
-        }
         } else {
           setStatus("❌ Falha no Login: Erro no Servidor");
         }
@@ -56,13 +57,19 @@ function App() {
     }
   }
 
-  // Poll every 10 seconds if checking == true
+  // ---- POLL SERVER STATUS ----
   useEffect(() => {
-    if (!checking) return;
+    if (!checking || !token) return;
 
     async function checkServer() {
       try {
-        const res = await axios.get<ServerStatus>("/api/status");
+        const res = await axios.get<ServerStatus>("/api/status", {
+          headers: {
+            "x-auth-token": token,
+            "x-username": user, // required by backend middleware
+          },
+        });
+
         if (res.data.ok) {
           setServerInfo(res.data);
           setChecking(false);
@@ -70,16 +77,24 @@ function App() {
         } else {
           setStatus("⏳ Servidor iniciando...");
         }
-      } catch {
-        setStatus("⏳ Servidor iniciando...");
+      } catch (err: any) {
+        // handle 401 -> token expired
+        if (err.response && err.response.status === 401) {
+          setStatus("⚠️ Autenticação Expirada — Faça login novamente.");
+          setChecking(false);
+          setToken(null);
+          setServerInfo(null);
+        } else {
+          setStatus("⏳ Servidor iniciando...");
+        }
       }
     }
 
-    // Check immediately, then every 10s
+    // Run once immediately, then every 10s
     checkServer();
     const interval = setInterval(checkServer, 10000);
     return () => clearInterval(interval);
-  }, [checking]);
+  }, [checking, token, user]);
 
   return (
     <>
@@ -89,9 +104,14 @@ function App() {
 
         {!serverInfo && (
           <form onSubmit={submit}>
-            <div style={{display: "none"}} aria-hidden="true">
+            <div style={{ display: "none" }} aria-hidden="true">
               <label htmlFor="website">Website</label>
-              <input id="website" name="website" autoComplete="off" tabIndex={-1} />
+              <input
+                id="website"
+                name="website"
+                autoComplete="off"
+                tabIndex={-1}
+              />
             </div>
             <label>Usuário</label>
             <input
@@ -122,13 +142,15 @@ function App() {
             <h3>🌐 IP do Servidor:</h3>
             <p className="ip">{serverInfo.ip}</p>
             <h3>👥 Jogadores Online:</h3>
-              {serverInfo.players && serverInfo.players.length != 0 ? (
-                <ul> 
-                  {serverInfo.players.map((p) => (
-                            <li key={p}>{p}</li>
-                          )) }
-                </ul>
-              ) : (<p className="ip">Sem Jogadores - Seja o Primeiro 🤩</p>)}
+            {serverInfo.players && serverInfo.players.length !== 0 ? (
+              <ul>
+                {serverInfo.players.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="ip">Sem Jogadores - Seja o Primeiro 🤩</p>
+            )}
             <p className="tip">
               Copie o IP acima, cole no Minecraft e boa jogatina! 🎮
             </p>

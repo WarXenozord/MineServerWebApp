@@ -1,11 +1,14 @@
 import dotenv from "dotenv";
-dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/etc/ms/.env' : './.env' });
+dotenv.config({
+  path: process.env.NODE_ENV === "production" ? "/etc/ms/.env" : "./.env",
+});
 
 import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto"; // 👈 added
 import { fileURLToPath } from "url";
 import {
   blockMiddleware,
@@ -22,11 +25,29 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 4000;
 const USERS_FILE = process.env.USERS_FILE || "users.json";
+const TOKEN_EXPIRE_TIME = process.env.TOKEN_EXPIRE_TIME || 5 * 60 * 1000; // default 5 min
+const TOKEN_CLEANUP_TIME = process.env.TOKEN_CLEANUP_TIME || 60 * 60 * 1000; // default 1 hour
 
 const app = express();
 app.use(bodyParser.json());
 app.use(blockMiddleware);
 app.use(express.static(path.join(__dirname, "public")));
+
+// ---- TEMP TOKEN STORAGE ----
+// key = `${ip}:${username}` → { token, expire }
+const tempTokens = new Map();
+
+// Cleanup expired tokens every 60s
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, data] of tempTokens.entries()) {
+    if (data.expire <= now) tempTokens.delete(key);
+  }
+}, TOKEN_CLEANUP_TIME);
+
+function generateToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
 
 function loadUsers() {
   if (!fs.existsSync(USERS_FILE)) return {};
@@ -42,7 +63,6 @@ let serverBooting = false;
 let serverOnline = false;
 let bootStartTime = 0;
 
-// Simulate a fake Minecraft server that takes ~15s to start
 function simulateServerStart() {
   serverBooting = true;
   serverOnline = false;
@@ -59,20 +79,12 @@ app.post("/api/login", async (req, res) => {
   const { username, password } = req.body || {};
   const ip = clientIpFromReq(req);
 
-  // --- Honeypot check ---
   const hp = checkHoneypot(req, ip);
-  if (hp.tripped) {
-    // respond like normal failure
-    return res.status(401).json({ ok: false, error: "invalid" });
-  }
+  if (hp.tripped) return res.status(401).json({ ok: false, error: "invalid" });
 
-  // --- Brute-force rate limiter ---
   const rate = checkRateLimit(username, ip);
-  if (!rate.ok) {
-    return res.status(429).json({ ok: false, error: rate.reason });
-  }
+  if (!rate.ok) return res.status(429).json({ ok: false, error: rate.reason });
 
-  // --- User verification ---
   const users = loadUsers();
   const userHash = users[username];
   if (!userHash) {
@@ -87,27 +99,67 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ ok: false, error: "invalid" });
     }
 
-    // Success
+    // --- SUCCESS ---
     recordSuccessfulLogin(username, ip);
     if (!global.serverBooting && !global.serverOnline) simulateServerStart();
 
-    return res.json({ ok: true, message: "logged" });
+    const key = `${ip}:${username}`;
+    const existing = tempTokens.get(key);
+    const now = Date.now();
+
+    // Reuse valid existing token if still active
+    if (existing && existing.expire > now) {
+      return res.json({
+        ok: true,
+        message: "logged",
+        token: existing.token,
+        expires_in: Math.floor((existing.expire - now) / 1000),
+      });
+    }
+
+    // Otherwise, generate a new one
+    const token = generateToken();
+    tempTokens.set(key, { token, expire: now + TOKEN_EXPIRE_TIME });
+
+    return res.json({
+      ok: true,
+      message: "logged",
+      token
+    });
   } catch (err) {
     console.error("login error", err);
     return res.status(500).json({ ok: false, error: "server" });
   }
 });
 
+// ---- TOKEN VALIDATION MIDDLEWARE ----
+function requireToken(req, res, next) {
+  const ip = clientIpFromReq(req);
+  const token = req.headers["x-auth-token"];
+
+  // You can optionally include username in the request header if needed
+  const username = req.headers["x-username"];
+  if (!username) return res.status(401).json({ ok: false, error: "missing-username" });
+
+  const key = `${ip}:${username}`;
+  const entry = tempTokens.get(key);
+
+  if (!entry || entry.token !== token || entry.expire <= Date.now()) {
+    tempTokens.delete(key);
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+
+  next();
+}
+
 // ---- STATUS ENDPOINT ----
-app.get("/api/status", async (req, res) => {
+app.get("/api/status", requireToken, async (req, res) => {
   const result = await getServerStatus();
   res.json(result);
 });
 
 // ---- SPA fallback ----
-app.use(
-  express.static(path.join(__dirname, "..", "Client", "dist"))
-);
+app.use(express.static(path.join(__dirname, "..", "Client", "dist")));
 app.get(/.*/, (req, res) => {
   res.sendFile(
     path.join(__dirname, "..", "MineAuthenticator-Front", "dist", "index.html")
