@@ -3,6 +3,7 @@ dotenv.config({ path: process.env.NODE_ENV === "production" ? "/etc/ms/.env" : "
 
 import fs from "fs";
 import fetch from "node-fetch";
+import crypto from "crypto";
 import { invokeStartServerLambda } from "./lambdaCaller.js";
 
 const STATE_FILE = "./Logs/lastServer.json";

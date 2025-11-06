@@ -88,7 +88,9 @@ app.post("/api/login", async (req, res) => {
 
     // --- SUCCESS ---
     recordSuccessfulLogin(username, ip);
-    await authorizePlayer(ip, username);
+    const authorization = await authorizePlayer(ip, username);
+    if(!authorization.ok)
+      return res.status(500).json({ ok: false, error: authorization.error });
 
     const key = `${ip}:${username}`;
     const existing = tempTokens.get(key);
