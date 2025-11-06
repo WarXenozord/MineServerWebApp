@@ -18,7 +18,10 @@ import {
   recordFailedAttempt,
   recordSuccessfulLogin,
 } from "./Util/blocker.js";
-import { getServerStatus } from "./Util/serverManager.js";
+import { 
+  getServerStatus,
+  authorizePlayer
+ } from "./Util/serverManager.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,22 +61,6 @@ function loadUsers() {
   }
 }
 
-// ---- STATE SIMULATION ----
-let serverBooting = false;
-let serverOnline = false;
-let bootStartTime = 0;
-
-function simulateServerStart() {
-  serverBooting = true;
-  serverOnline = false;
-  bootStartTime = Date.now();
-
-  setTimeout(() => {
-    serverBooting = false;
-    serverOnline = true;
-  }, 15000);
-}
-
 // ---- LOGIN ----
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body || {};
@@ -101,7 +88,7 @@ app.post("/api/login", async (req, res) => {
 
     // --- SUCCESS ---
     recordSuccessfulLogin(username, ip);
-    if (!global.serverBooting && !global.serverOnline) simulateServerStart();
+    await authorizePlayer(ip, username);
 
     const key = `${ip}:${username}`;
     const existing = tempTokens.get(key);

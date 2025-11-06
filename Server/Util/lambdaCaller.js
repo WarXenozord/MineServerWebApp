@@ -15,10 +15,10 @@ const lambda = USE_MOCK_LAMBDA ? null : new LambdaClient({
  */
 export async function invokeStartServerLambda() {
   if (USE_MOCK_LAMBDA) {
-    console.log("⚙️  Mock Lambda invoked locally");
-    // Simulate network + boot delay
+    console.log("⚙️  Mock Lambda: starting local dev server...");
+    // Simulate boot delay and return mock IP
     await new Promise(r => setTimeout(r, 1500));
-    return { ok: true, ip: "localhost", message: "Local fake Lambda success" };
+    return { ok: true, ip: "localhost", message: "Mock Lambda started local dev server" };
   }
 
   const command = new InvokeCommand({

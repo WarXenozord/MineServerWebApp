@@ -8,6 +8,7 @@ import { invokeStartServerLambda } from "./lambdaCaller.js";
 const STATE_FILE = "./Logs/lastServer.json";
 const MAX_LAMBDA_CALLS_PER_DAY = process.env.MAX_LAMBDA_CALLS_PER_DAY || 20;
 const PORT = process.env.API_PORT
+const AUTH_SECRET = process.env.AUTH_SECRET || "dev-super-secret"; 
 
 let lastKnownIp = null;
 let lambdaCallsToday = 0;
@@ -97,5 +98,38 @@ export async function getServerStatus() {
     console.error("[ServerManager] Lambda failed:", err.message);
     serverStarting = false;
     return { status: "error", message: err.message, ip: lastKnownIp };
+  }
+}
+
+export async function authorizePlayer(ip, username) {
+  const url = `http://${lastKnownIp}:${PORT}/authorize`;
+  const body = JSON.stringify({ ip, username });
+  const timestamp = Date.now().toString();
+
+  // Create HMAC signature: HMAC_SHA256(secret, timestamp + ":" + body)
+  const signature = crypto
+    .createHmac("sha256", AUTH_SECRET)
+    .update(`${timestamp}:${body}`)
+    .digest("hex");
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-timestamp": timestamp,
+        "x-signature": signature,
+      },
+      body,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Authorization failed");
+
+    console.log(`[AuthServer] Authorized ${username}@${ip} -> ${data.message}`);
+    return { ok: true, response: data };
+  } catch (err) {
+    console.error(`[AuthServer] Failed to authorize ${username}@${ip}:`, err.message);
+    return { ok: false, error: err.message };
   }
 }
