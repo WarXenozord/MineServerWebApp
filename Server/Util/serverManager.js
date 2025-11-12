@@ -114,6 +114,7 @@ export async function authorizePlayer(ip, username) {
     .digest("hex");
 
   try {
+    console.log(url);
     const res = await fetch(url, {
       method: "POST",
       headers: {
