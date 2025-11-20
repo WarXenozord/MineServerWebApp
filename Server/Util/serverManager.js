@@ -59,7 +59,7 @@ export async function getServerStatus() {
     console.log("[ServerManager] Server is starting...");
     return { status: "booting", ip: lastKnownIp };
   }
-
+ 
   // Try existing IP
   if (lastKnownIp) {
     const status = await checkServer(lastKnownIp);
