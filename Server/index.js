@@ -88,7 +88,7 @@ app.post("/api/login", async (req, res) => {
 
     // --- SUCCESS ---
     recordSuccessfulLogin(username, ip);
-    const result = await getServerStatus(); // TODO: Start the server in a better way
+    await getServerStatus(); // TODO: Start the server in a better way
     const authorization = await authorizePlayer(ip, username);
     if(!authorization.ok)
       return res.status(500).json({ ok: false, error: authorization.error });
