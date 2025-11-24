@@ -1,3 +1,3 @@
 import bcrypt from 'bcrypt';
 
-bcrypt.hash('password', 'salt').then(console.log)
+bcrypt.hash('password', 10).then(console.log)

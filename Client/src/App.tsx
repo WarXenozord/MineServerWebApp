@@ -9,6 +9,9 @@ interface ServerStatus {
   message?:string;
 }
 
+const BASE = "/PlayMinecraft";
+const API = `${BASE}/api`;
+
 function App() {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
@@ -28,7 +31,7 @@ function App() {
     const hp = (form as HTMLFormElement).website?.value || ""; // honeypot
 
     try {
-      const res = await axios.post("/api/login", {
+      const res = await axios.post(`${API}/login`, {
         username: user,
         password: pass,
         website: hp,
@@ -64,7 +67,7 @@ function App() {
 
     async function checkServer() {
       try {
-        const res = await axios.get<ServerStatus>("/api/status", {
+        const res = await axios.get<ServerStatus>(`${API}/status`, {
           headers: {
             "x-auth-token": token,
             "x-username": user, // required by backend middleware

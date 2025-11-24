@@ -26,10 +26,17 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const logDir = path.join(__dirname, "Logs");
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
 const PORT = process.env.PORT || 4000;
 const USERS_FILE = process.env.USERS_FILE || "users.json";
 const TOKEN_EXPIRE_TIME = process.env.TOKEN_EXPIRE_TIME || 5 * 60 * 1000; // default 5 min
 const TOKEN_CLEANUP_TIME = process.env.TOKEN_CLEANUP_TIME || 60 * 60 * 1000; // default 1 hour
+const SUBPAGE = 'PlayMinecraft';
+const API_BASE = SUBPAGE + "/api";
 
 const app = express();
 app.use(bodyParser.json());
@@ -62,7 +69,7 @@ function loadUsers() {
 }
 
 // ---- LOGIN ----
-app.post("/api/login", async (req, res) => {
+app.post('/' + API_BASE + "/login", async (req, res) => {
   const { username, password } = req.body || {};
   const ip = clientIpFromReq(req);
 
@@ -143,17 +150,15 @@ function requireToken(req, res, next) {
 }
 
 // ---- STATUS ENDPOINT ----
-app.get("/api/status", requireToken, async (req, res) => {
+app.get('/' + API_BASE + "/status", requireToken, async (req, res) => {
   const result = await getServerStatus();
   res.json(result);
 });
 
 // ---- SPA fallback ----
-app.use(express.static(path.join(__dirname, "..", "Client", "dist")));
-app.get(/.*/, (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "..", "Client", "dist", "index.html")
-  );
+app.use('/' + SUBPAGE, express.static(path.join(__dirname, '..', 'Client', 'dist')));
+app.get(new RegExp(`^/${SUBPAGE}(/.*)?$`), (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'Client', 'dist', 'index.html'));
 });
 
 app.listen(PORT, () => console.log(`mine-server-app listening on ${PORT}`));
