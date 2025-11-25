@@ -38,12 +38,24 @@ function saveState() {
 
 // --- Try to reach the Minecraft server ---
 async function checkServer(ip) {
+  const controller = new AbortController();
+  const timeoutMs = 4000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const res = await fetch(`http://${ip}:${PORT}/status`, { timeout: 4000 });
+    const res = await fetch(`http://${ip}:${PORT}/status`, {
+      signal: controller.signal,
+      // Node 18+ option to kill slow TL handshake:
+      dispatcher: new Agent({ connect: { timeout: timeoutMs } })
+    });
+
     if (!res.ok) return null;
     return await res.json();
+
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
