@@ -13,6 +13,7 @@ const PORT = process.env.API_PORT
 const AUTH_SECRET = process.env.AUTH_SECRET || "dev-super-secret"; 
 
 let lastKnownIp = null;
+let lastKnownPublicIp = null;
 let lambdaCallsToday = 0;
 let lastCallDay = new Date().getDate();
 let serverStarting = false;
@@ -22,6 +23,7 @@ try {
   if (fs.existsSync(STATE_FILE)) {
     const data = JSON.parse(fs.readFileSync(STATE_FILE));
     lastKnownIp = data.ip || null;
+    lastKnownPublicIp = data.publicIp || null;
     lambdaCallsToday = data.lambdaCallsToday || 0;
     lastCallDay = data.lastCallDay || new Date().getDate();
   }
@@ -33,7 +35,7 @@ try {
 function saveState() {
   fs.writeFileSync(
     STATE_FILE,
-    JSON.stringify({ ip: lastKnownIp, lambdaCallsToday, lastCallDay }, null, 2)
+    JSON.stringify({ ip: lastKnownIp, publicIp: lastKnownPublicIp, lambdaCallsToday, lastCallDay }, null, 2)
   );
 }
 
@@ -70,14 +72,14 @@ export async function getServerStatus() {
 
   if (serverStarting) {
     console.log("[ServerManager] Server is starting...");
-    return { status: "booting", ip: lastKnownIp };
+    return { status: "booting", ip: lastKnownPublicIp };
   }
  
   // Try existing IP
   if (lastKnownIp) {
     const status = await checkServer(lastKnownIp);
     if (status && status.ok) {
-      return { status: "online", ip: lastKnownIp+":"+status.port, players: status.players };
+      return { status: "online", ip: lastKnownPublicIp+":"+status.port, players: status.players };
     }
   }
 
@@ -93,6 +95,7 @@ export async function getServerStatus() {
 
     if (!result || !result.ip) throw new Error("Lambda returned no IP");
     lastKnownIp = result.ip;
+    lastKnownPublicIp = result.publicIp;
     lambdaCallsToday++;
     saveState();
 
@@ -102,16 +105,16 @@ export async function getServerStatus() {
       const status = await checkServer(lastKnownIp);
       if (status && status.ok) {
         serverStarting = false;
-        return { status: "online", ip: lastKnownIp+":"+status.port, players: status.players };
+        return { status: "online", ip: lastKnownPublicIp+":"+status.port, players: status.players };
       }
     }
 
     serverStarting = false;
-    return { status: "booting", ip: lastKnownIp };
+    return { status: "booting", ip: lastKnownPublicIp };
   } catch (err) {
     console.error("[ServerManager] Lambda failed:", err.message);
     serverStarting = false;
-    return { status: "error", message: err.message, ip: lastKnownIp };
+    return { status: "error", message: err.message, ip: lastKnownPublicIp };
   }
 }
 

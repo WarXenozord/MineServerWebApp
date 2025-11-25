@@ -45,10 +45,12 @@ export const handler = async (event) => {
       return { ok: false, message: "Instance not found" };
 
     const ip = instance.PrivateIpAddress || null;
+    const publicIp = instance.PublicIpAddress || null;
 
     return {
       ok: true,
       ip,
+      publicIp,
       state: instance.State?.Name,
       message: ip
         ? "Instance starting with IP assigned"
