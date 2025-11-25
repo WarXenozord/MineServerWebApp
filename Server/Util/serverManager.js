@@ -5,6 +5,7 @@ import fs from "fs";
 import fetch from "node-fetch";
 import crypto from "crypto";
 import { invokeStartServerLambda } from "./lambdaCaller.js";
+import { Agent } from "undici";
 
 const STATE_FILE = "./Logs/lastServer.json";
 const MAX_LAMBDA_CALLS_PER_DAY = process.env.MAX_LAMBDA_CALLS_PER_DAY || 20;

@@ -44,15 +44,15 @@ export const handler = async (event) => {
     if (!instance)
       return { ok: false, message: "Instance not found" };
 
-    const ip = instance.PublicIpAddress || null;
+    const ip = instance.PrivateIpAddress || null;
 
     return {
       ok: true,
       ip,
       state: instance.State?.Name,
       message: ip
-        ? "Instance starting with public IP assigned"
-        : "Instance starting but public IP not ready yet",
+        ? "Instance starting with IP assigned"
+        : "Instance starting but IP not ready yet",
     };
 
   } catch (err) {
