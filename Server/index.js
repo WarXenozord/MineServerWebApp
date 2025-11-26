@@ -35,7 +35,7 @@ const PORT = process.env.PORT || 4000;
 const USERS_FILE = process.env.USERS_FILE || "users.json";
 const TOKEN_EXPIRE_TIME = process.env.TOKEN_EXPIRE_TIME || 5 * 60 * 1000; // default 5 min
 const TOKEN_CLEANUP_TIME = process.env.TOKEN_CLEANUP_TIME || 60 * 60 * 1000; // default 1 hour
-const SUBPAGE = 'PlayMinecraft';
+const SUBPAGE = process.env.SUBPAGE || 'PlayMinecraft';
 const API_BASE = SUBPAGE + "/api";
 
 const app = express();
