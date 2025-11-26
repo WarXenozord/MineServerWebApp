@@ -17,46 +17,46 @@ The Minecraft-server side of this system is here:
 
 ### 1. Clone the repo
 
-\`\`\`bash
+```bash
 git clone https://github.com/WarXenozord/MineServerWebApp.git
 cd MineServerWebApp
-\`\`\`
+```
 
 ### 2. Install all dependencies
 
-\`\`\`bash
+```bash
 npm run install:all
-\`\`\`
+```
 
 ### 3. Build the Vite frontend
 
-\`\`\`bash
+```bash
 npm run build
-\`\`\`
+```
 
 ### 4. Configure environment variables  
-Copy and edit the template:
+Copy, edit the template and set them on process.env:
 
-\`\`\`
+```
 Server/.env.template  →  Server/.env
-\`\`\`
+```
 
 Fill everything in based on your AWS setup and your Minecraft supervisor API.
 
 ### 5. Using a different subpage?
-If you change the \`SUBPAGE\`, update it inside:
+If you change the `SUBPAGE`, update it inside:
 
-\`\`\`
+```
 vite.config.ts
-\`\`\`
+```
 
 It must match the path where your app will be hosted.
 
 ### 6. Start the app
 
-\`\`\`bash
+```bash
 npm run start
-\`\`\`
+```
 
 ---
 
@@ -65,11 +65,11 @@ npm run start
 This part handles the auto-start and firewall authorization loop.
 
 ### 1. Deploy the Lambda  
-Inside the \`lambdas/\` folder, deploy the Lambda function to AWS.
+Inside the `lambdas/` folder, deploy the Lambda function to AWS.
 
 ### 2. Fix EC2 permissions  
 Your EC2 instance must be allowed to call the Lambda.  
-Add the correct IAM permissions (usually \`lambda:InvokeFunction\`).
+Add the correct IAM permissions (usually `lambda:InvokeFunction`).
 
 ### 3. Whitelist the web app server IP  
 On your Minecraft server (the supervisor API), whitelist the IP of the machine running this web app so it can:
