@@ -96,6 +96,8 @@ app.post('/' + API_BASE + "/login", async (req, res) => {
     // --- SUCCESS ---
     recordSuccessfulLogin(username, ip);
     await getServerStatus(); // TODO: Start the server in a better way
+    // How to solve this: create a three way endpoint: first login, then status 
+    // and when client see status = ok, it fires the authorize
     const authorization = await authorizePlayer(ip, username);
     if(!authorization.ok)
       return res.status(500).json({ ok: false, error: authorization.error });

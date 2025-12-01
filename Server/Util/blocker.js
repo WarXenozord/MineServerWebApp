@@ -93,6 +93,7 @@ export function recordFailedAttempt(username, ip) {
 
 export function recordSuccessfulLogin(username, ip) {
   if (username) failedLoginByUser.delete(username);
+  if (ip) failedLoginByIp.delete(ip);
 }
 
 // ---- Honeypot logic ----
